@@ -60,9 +60,10 @@
         .fab:active { transform: scale(0.9); }
         #settingsButton { right: 90px; }
         #downloadButton { right: 20px; }
+        #templateButton { right: 160px; }
 
         /* Modal Styling */
-        #settingsModal {
+        #settingsModal, #templateModal {
             display: none;
             position: fixed;
             top: 50%;
@@ -75,7 +76,7 @@
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
             z-index: 100;
         }
-        .settings-option { margin-bottom: 15px; }
+        .settings-option, .template-option { margin-bottom: 15px; }
         .close-button {
             margin-top: 10px;
             padding: 5px 10px;
@@ -148,30 +149,30 @@
 <body>
 
 <!-- Intro Screen -->
-<div id="intro"><h1>Welcome to CodeRunner!By emok.inkithub😊</h1></div>
+<div id="intro"><h1>Welcome to CodeRunner!</h1></div>
 
 <div id="wrapper" style="display: none;">
     <div class="codeContainer" id="HTMLContainer">
         <div class="codeLabel">HTML</div>
-        <textarea id="htmlCode" style="width: 100%; height: 200px;">Write your HTML code here...</textarea>
-        <div class="lineCounter" id="htmlLineCounter">Lines: 1</div>
+        <textarea id="htmlCode" style="width: 100%; height: 200px;"><!-- Your HTML will be inserted here --></textarea>
+        <div class="lineCounter" id="htmlLineCounter">Lines: 0</div>
     </div>
     
     <div class="codeContainer" id="CSSContainer">
         <div class="codeLabel">CSS</div>
-        <textarea id="cssCode" style="width: 100%; height: 200px;">Write your CSS code here...</textarea>
-        <div class="lineCounter" id="cssLineCounter">Lines: 1</div>
+        <textarea id="cssCode" style="width: 100%; height: 200px;">/* Your CSS will be inserted here */</textarea>
+        <div class="lineCounter" id="cssLineCounter">Lines: 0</div>
     </div>
     
     <div class="codeContainer" id="JSContainer">
         <div class="codeLabel">JavaScript</div>
-        <textarea id="jsCode" style="width: 100%; height: 200px;">JS functionality to be added later...</textarea>
-        <div class="lineCounter" id="jsLineCounter">Lines: 1</div>
+        <textarea id="jsCode" style="width: 100%; height: 200px;">// Your JavaScript will be inserted here</textarea>
+        <div class="lineCounter" id="jsLineCounter">Lines: 0</div>
     </div>
 
     <div class="codeContainer" id="ResultContainer">
         <div class="codeLabel">Result</div>
-        <iframe id="resultFrame" style="width: 100%; height: 500px;"></iframe>
+        <iframe id="resultFrame" style="width: 100%; height: 200px;"></iframe>
     </div>
 </div>
 
@@ -199,9 +200,20 @@
     <button class="close-button" id="closeSettingsButton">Close</button>
 </div>
 
+<!-- Template Selection Modal -->
+<div id="templateModal">
+    <h3>Select a Template</h3>
+    <div class="template-option" data-template="simple-game">Simple HTML Game</div>
+    <div class="template-option" data-template="calculator">Calculator Code</div>
+    <div class="template-option" data-template="code-runner">Simple Code Runner</div>
+    <div class="template-option" data-template="animation-button">Animation Button Template</div>
+    <button class="close-button" id="closeTemplateButton">Close</button>
+</div>
+
 <!-- Floating Action Buttons -->
+<button class="fab" id="templateButton">📑</button>
 <button class="fab" id="downloadButton">Save</button>
-<button class="fab" id="settingsButton">settings</button>
+<button class="fab" id="settingsButton">⚙️</button>
 
 <script>
     $(document).ready(function() {
@@ -215,7 +227,9 @@
         // Floating Action Buttons Functionality
         $("#downloadButton").click(downloadCode);
         $("#settingsButton").click(openSettings);
-        $("#closeSettingsButton").click(closeSettings); // Attach close function to button
+        $("#closeSettingsButton").click(closeSettings);
+        $("#templateButton").click(openTemplateModal);
+        $("#closeTemplateButton").click(closeTemplateModal);
 
         // Initialize line counters
         updateLineCount("htmlCode", "htmlLineCounter");
@@ -223,69 +237,110 @@
         updateLineCount("jsCode", "jsLineCounter");
 
         // Attach keyup event for line counting and auto-running code
-        $("#htmlCode, #cssCode, #jsCode").on('input', function() {
-            updateLineCount(this.id, this.id + "Counter");
-            runCode();  // Auto-run code on input
+        $("#htmlCode, #cssCode, #jsCode").on("keyup", function() {
+            const id = $(this).attr("id");
+            updateLineCount(id, id + "LineCounter");
+            runCode();
         });
 
-        // Run Code
-        function runCode() {
-            $("#loading").show();
-            $("#errorMessage").hide();
-            try {
-                var htmlContent = $("#htmlCode").val();
-                var cssContent = $("#cssCode").val();
-                var jsContent = $("#jsCode").val();
-                var fullContent = `<style>${cssContent}</style>${htmlContent}<script>${jsContent}<\/script>`;
-                $("#resultFrame").contents().find("html").html(fullContent);
-            } catch (error) {
-                $("#errorMessage").text("Error in running code: " + error.message).show();
-            } finally {
-                $("#loading").hide();
-            }
-        }
-
-        // Download Code
-        function downloadCode() {
-            var htmlContent = $("#htmlCode").val();
-            var cssContent = $("#cssCode").val();
-            var jsContent = $("#jsCode").val();
-            var blob = new Blob([htmlContent + "\n" + cssContent + "\n" + jsContent + "\n<!-- Watermark: Created with CodeRunner -->"], { type: "text/plain" });
-            var url = URL.createObjectURL(blob);
-            var a = document.createElement("a");
-            a.href = url;
-            a.download = "code.txt";
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-
-        // Open and Close Settings Modal
-        function openSettings() { $("#settingsModal").fadeIn(); }
-        function closeSettings() { $("#settingsModal").fadeOut(); }
-
-        // Toggle Theme
-        $("#toggleTheme").change(toggleTheme);
-        function toggleTheme() {
-            if ($("#toggleTheme").is(":checked")) {
-                $("body").addClass("light-theme");
-            } else {
-                $("body").removeClass("light-theme");
-            }
-        }
-
-        // Change Font Size
-        $("#fontSize").change(changeFontSize);
-        function changeFontSize() {
-            var fontSize = $("#fontSize").val();
-            $("textarea").css("font-size", fontSize);
-        }
-
-        // Update Line Count
-        function updateLineCount(textareaId, counterId) {
-            var lineCount = $("#" + textareaId).val().split('\n').length;
-            $("#" + counterId).text("Lines: " + lineCount);
-        }
+        // Template selection click events
+        $(".template-option").click(function() {
+            const template = $(this).data("template");
+            loadTemplate(template);
+        });
     });
+
+    function updateLineCount(textareaId, counterId) {
+        const lines = $("#" + textareaId).val().split("\n").length;
+        $("#" + counterId).text("Lines: " + lines);
+    }
+
+    function runCode() {
+        const html = $("#htmlCode").val();
+        const css = $("#cssCode").val();
+        const js = $("#jsCode").val();
+        const frame = $("#resultFrame").get(0);
+        const frameDoc = frame.contentDocument || frame.contentWindow.document;
+        
+        frameDoc.open();
+        frameDoc.write(html + "<style>" + css + "</style>" + "<script>" + js + "<\/script>");
+        frameDoc.close();
+    }
+
+    function downloadCode() {
+        const htmlCode = $("#htmlCode").val();
+        const cssCode = $("#cssCode").val();
+        const jsCode = $("#jsCode").val();
+        const blob = new Blob([htmlCode + "\n" + cssCode + "\n" + jsCode], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "code.txt";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+
+    function openSettings() {
+        $("#settingsModal").fadeIn(300);
+    }
+
+    function closeSettings() {
+        $("#settingsModal").fadeOut(300);
+    }
+
+    function openTemplateModal() {
+        $("#templateModal").fadeIn(300);
+    }
+
+    function closeTemplateModal() {
+        $("#templateModal").fadeOut(300);
+    }
+
+    function loadTemplate(template) {
+        let html = "", css = "", js = "";
+        switch (template) {
+            case "simple-game":
+                html = `<button onclick="alert('You clicked the button!')">Click me!</button>`;
+                css = `button { font-size: 20px; padding: 10px; }`;
+                js = `console.log('Simple game loaded!');`;
+                break;
+            case "calculator":
+                html = `<input type="text" id="calcInput" placeholder="0" disabled>
+                         <button onclick="addToCalc('1')">1</button>
+                         <button onclick="addToCalc('2')">2</button>
+                         <button onclick="addToCalc('3')">3</button>
+                         <button onclick="addToCalc('+')">+</button>
+                         <button onclick="calculate()">=</button>`;
+                css = `#calcInput { width: 100%; margin-bottom: 10px; } button { width: 20%; }`;
+                js = `function addToCalc(value) {
+                           document.getElementById('calcInput').value += value;
+                       }
+                       function calculate() {
+                           const input = document.getElementById('calcInput').value;
+                           document.getElementById('calcInput').value = eval(input);
+                       }`;
+                break;
+            case "code-runner":
+                html = `<h1>Welcome to the Code Runner!</h1>`;
+                css = `h1 { color: blue; }`;
+                js = `console.log('Code Runner loaded!');`;
+                break;
+            case "animation-button":
+                html = `<button id="animateBtn">Click Me!</button>`;
+                css = `#animateBtn { transition: transform 0.2s; }`;
+                js = `document.getElementById('animateBtn').addEventListener('click', function() {
+                           this.style.transform = 'scale(1.5)';
+                           setTimeout(() => this.style.transform = 'scale(1)', 200);
+                       });`;
+                break;
+        }
+        $("#htmlCode").val(html);
+        $("#cssCode").val(css);
+        $("#jsCode").val(js);
+        runCode();
+        closeTemplateModal();
+    }
 </script>
 </body>
 </html>
